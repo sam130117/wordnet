@@ -1,0 +1,54 @@
+html, body{
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font: 16px/18px "Arial Black", sans-serif;
+}
+
+.wrap{
+    max-width: 1200px;
+    margin: 30px auto 0 auto;
+}
+
+input::-webkit-input-placeholder{ color: #cbcccd; }
+input::-moz-placeholder{ color: #cbcccd; }
+input:-moz-placeholder{ color: #cbcccd; }
+input:-ms-input-placeholder{ color: #cbcccd; }
+
+form textarea{
+    width: 100%;
+    margin: 10px 0;
+    resize: vertical;
+    border-radius: 4px;
+}
+
+form input[type=text]{
+    width: 100%;
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #eeeeee;
+}
+
+form input[type=text]:focus, form input[type=submit]:focus, form button:focus{
+    outline: none;
+}
+
+form input[type=submit], form button{
+    width: 100%;
+    max-width: 200px;
+    margin: 10px 0;
+    padding: 10px;
+    text-transform: uppercase;
+    font-weight: 600;
+    border-radius: 4px;
+    border: 1px solid #eeeeee;
+    background-color: #00006b;
+    color: #fff;
+}
+
+form input[type=submit]:hover, form button:hover{
+    cursor: pointer;
+    background-color: darkblue;
+}
