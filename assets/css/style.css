@@ -3,7 +3,7 @@ html, body{
     height: 100%;
     margin: 0;
     padding: 0;
-    font: 16px/18px "Arial Black", sans-serif;
+    font: 14px/16px "Arial ", sans-serif;
 }
 
 .wrap{
@@ -12,17 +12,32 @@ html, body{
     padding: 0 15px;
 }
 
-input::-webkit-input-placeholder{ color: #cbcccd; }
-input::-moz-placeholder{ color: #cbcccd; }
-input:-moz-placeholder{ color: #cbcccd; }
-input:-ms-input-placeholder{ color: #cbcccd; }
-
-form textarea{
+.text-output, .text-input {
     width: 100%;
-    margin: 10px 0;
-    resize: vertical;
+    padding: 20px 10px;
     border-radius: 4px;
 }
+
+.text-output {
+    min-height: 200px;
+    background-color: #f1f1f1;
+    color: #737373;
+    border: 1px solid rgb(169, 169, 169);
+    font-weight: normal;
+
+}
+
+textarea.text-input{
+    margin: 10px 0;
+    resize: vertical;
+}
+
+::-webkit-input-placeholder{ font: 14px/16px "Arial ", sans-serif;}
+::-moz-placeholder{ font: 14px/16px "Arial ", sans-serif; }
+:-moz-placeholder{ font: 14px/16px "Arial ", sans-serif;}
+:-ms-input-placeholder{ font: 14px/16px "Arial ", sans-serif;}
+
+
 
 form input[type=text]{
     width: 100%;

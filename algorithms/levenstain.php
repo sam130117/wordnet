@@ -9,16 +9,14 @@ require_once('../models/StringManager.php');
 $originalString = isset($_POST['original-text']) ? $_POST['original-text'] : '';
 $result = '';
 
-
 if (!empty($originalString)) {
     $result = StringManager::process($originalString);
+    $distance = levenshtein($originalString, $expectedString, 1, 1,1);
 }
 
-return print_r($result);
-
-//echo json_encode([
-//    'result' => $result,
-//]);
+echo json_encode([
+    'result' => $result,
+]);
 
 //$initialString = isset($_POST['initial-text']) ? $_POST['initial-text'] : '';
 //$expectedString = isset($_POST['expected-text']) ? $_POST['expected-text'] : '';

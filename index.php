@@ -10,7 +10,9 @@
 
 
     <form id="main-form" action="" method="post">
-        <input type="text" id="original-text" name="original-text" placeholder="Please enter your text..."/>
+        <textarea id="original-text" class="text-input" rows="12" name="original-text" placeholder="Please enter your text...">Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it, ‘and what is the use of a book,’ thought Alice ‘without pictures or conversation?’
+        </textarea>
+        <div id="processed-text" class="text-output">Processed text goes here... </div>
         <input type="submit" id="levenshtein-button" value="Run"/>
         <p id="levenshtein-result"></p>
     </form>
@@ -34,14 +36,13 @@
     $originalString = isset($_POST['original-text']) ? $_POST['original-text'] : '';
     $result = '';
 
-
-
     if (!empty($originalString)) {
         $result = StringManager::process($originalString);
         var_dump($result);
     }
 
     ?>
+
 
 </div>
 
