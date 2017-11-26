@@ -24,9 +24,17 @@ $(document).ready(function () {
             var list = "";
             var result = data.result;
             for (var property in result){
-                list = list + result[property] + '-'
+                console.log(result[property]);
+                if(result[property].indexOf('/') !== -1)
+                {
+                    console.log(result[property]);
+                    list = list + '<span class="error-message">' + result[property] + '</span>' + '-';
+                }
+                else {
+                    list = list + result[property] + '-';
+                }
             }
-            form.find('#processed-text').html(list);
+            form.find('#processed-text').innerHTML = list;
         });
     });
 });

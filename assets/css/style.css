@@ -27,6 +27,11 @@ html, body{
 
 }
 
+.error-message {
+    color: red;
+    font-weight: bold;
+}
+
 textarea.text-input{
     margin: 10px 0;
     resize: vertical;
