@@ -24,7 +24,7 @@ class StringManager
         'just', 'as', 'both', 'neither', 'because', 'so', 'if', 'then', 'once', 'here', 'there',
         'absolutely', 'achoo', 'ack', 'ahh', 'aha', 'ahem', 'ahoy', 'agreed', 'alas', 'alright', 'not',
 
-        'alrighty', 'alack', 'anytime', 'argh', 'anyhoo', 'anyhow', 'attaboy', 'attagirl', 'aww', 'awful', 'bam', 'bah',
+        'alrighty', 'alack', 'anytime', 'argh', 'anyhoo', 'how', 'anyhow', 'attaboy', 'attagirl', 'aww', 'awful', 'bam', 'bah',
         'humbug', 'behold', 'bingo', 'blah', 'boo', 'bravo', 'cheers', 'crud', 'darn', 'dang', 'doh', 'drat', 'duh',
         'eek', 'eh', 'gee', 'geepers', 'whiz', 'golly', 'goodness', 'gosh', 'ha', 'hallelujah', 'hey', 'hi', 'hmmm',
         'huh', 'indeed', 'no', 'nah', 'oops', 'ouch', 'phew', 'shucks', 'tut', 'uggh', 'woah', 'woops', 'wow',
@@ -36,13 +36,13 @@ class StringManager
 
     public static function process($string)
     {
-        $array = preg_split("/[,|.|;|:|!|?|!| |-|.|:|;|?|’|‘|\n|\r|]/", $string, -1, PREG_SPLIT_NO_EMPTY);
+        $array = preg_split("/[,|.|;|:|!|?|!| |-|.|:|;|?|(|)|{|}|’|‘|\n|\r|]/", $string, -1, PREG_SPLIT_NO_EMPTY);
         if ($array) {
             for ($i = 0; $i < count($array) - 1; $i++) {
 
                 if (in_array($array[$i], self::$partsOfSpeech)) {
                     //if word is in array -> remove it because it is correct
-                    $array[$i] = '..';
+                    $array[$i] = '-' . $array[$i] . '-';
                 } else {
                     foreach (self::$partsOfSpeech as $partsOfSpeech) {
                         //find levenshtein distance among $partsOfSpeech
@@ -54,24 +54,29 @@ class StringManager
                             $db = new PDO('mysql:host=localhost;dbname=wordnet;', 'root', '');
 
                             try {
-                                $stmt = $db->query("SELECT DISTINCT lemma FROM dict WHERE lemma LIKE '" . $array[$i] . "'");
+                                $stmt = $db->query("SELECT lemma, morph, pos, morphmaps.morphid FROM words " .
+                                    "LEFT JOIN morphmaps ON morphmaps.wordid = words.wordid LEFT JOIN morphs ON " .
+                                    "morphs.morphid = morphmaps.morphid WHERE lemma LIKE '" . $array[$i] .
+                                    "' OR morph LIKE '" . $array[$i] ."'");
                                 $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                                if($result && $result[0]['lemma'])
+                                if($result && ($result[0]['lemma'] || $result[0]['morph']))
                                 {
-                                    $array[$i] = '..';
+                                    $array[$i] = '-' . $array[$i] . '-';
                                 }
                                 else {
                                     //get closest word from $partsOfSpeech
-//                                    echo 'Distance for ' . $array[$i] . ' and ' . $partsOfSpeech . ' = ' . $distance . "<br/>";
+                                    echo 'Distance for ' . $array[$i] . ' and ' . $partsOfSpeech . ' = ' . $distance . "<br/>";
                                     $array[$i] = '/' . $partsOfSpeech . '/';
                                 }
                             } catch (PDOException $e) {
                                 return $e;
                             }
-//                          $distance = levenshtein($array[$i], $partsOfSpeech, 1, 1, 1);
-//                            echo 'Distance for ' . $array[$i] . ' and ' . $partsOfSpeech . ' = ' . $distance . "<br/>";
                         }
                     }
+
+                    //check other words in db
+//                    $distance = levenshtein($array[$i], $partsOfSpeech, 1, 1, 1);
+//                    echo 'Distance for ' . $array[$i] . ' and ' . $partsOfSpeech . ' = ' . $distance . "<br/>";
                 }
             }
         } else {
