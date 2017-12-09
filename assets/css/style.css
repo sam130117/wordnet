@@ -24,7 +24,8 @@ html, body{
     color: #737373;
     border: 1px solid rgb(169, 169, 169);
     font-weight: normal;
-
+    margin: 10px 0;
+    height: 250px;
 }
 
 .error-message {
@@ -41,6 +42,7 @@ html, body{
 textarea.text-input{
     margin: 10px 0;
     resize: vertical;
+    height: 250px;
 }
 
 ::-webkit-input-placeholder{ font: 14px/16px "Arial ", sans-serif;}
@@ -88,10 +90,7 @@ form input[type=submit]:hover, form button:hover{
     left:       0;
     height:     100%;
     width:      100%;
-    background: rgba( 255, 255, 255, .8 )
-    url('../loader.gif')
-    50% 50%
-    no-repeat;
+    background: rgba( 255, 255, 255, .8 ) url('../loader.gif') 50% 50% no-repeat;
 }
 
 /* When the body has the loading class, we turn

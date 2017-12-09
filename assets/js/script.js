@@ -8,9 +8,9 @@ $(document).ready(function () {
     $('#main-form').submit(function () {
         event.preventDefault();
         var form = $(this);
-
-
+        var t0 = performance.now();
         $.post( "algorithms/levenstain.php", form.serialize(), function(data) {
+            console.log(data);
             data = JSON.parse(data);
             var list = "";
             var result = data.result;
@@ -29,7 +29,11 @@ $(document).ready(function () {
                 }
             }
             form.find('#processed-text').html(list);
+            var t1 = performance.now();
+            console.log("Call took " + (t1 - t0) + " milliseconds.");
         });
+
+
     });
 });
 
