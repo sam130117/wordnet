@@ -13,7 +13,7 @@
     <form id="main-form" action="" method="post" >
         <div class="row">
             <div class="col-lg-6 col-md-6 col-sm-6">
-             <textarea id="original-text" class="text-input" rows="12" name="original-text" placeholder="Please enter your text...">Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it, ‘and what is the use of a book,’ thought Alice ‘without pictures or conversations</textarea>
+             <textarea id="original-text" class="text-input" rows="12" name="original-text" placeholder="Please enter your text...">Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do</textarea>
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6">
                 <div id="processed-text" class="text-output">Processed text goes here... </div>
@@ -36,7 +36,6 @@
         $result = StringManager::process($originalString);
         var_dump($result);
     }
-
     ?>
 
 
