@@ -34,150 +34,188 @@ class StringManager
         'am', 'are', 'is', 'was', 'were', 'been', 'has', 'have', 'had');
 
 
-
     public static function process($string)
     {
-        $array = preg_split("/[,|.|—|;|!’|?’|:|!|?|.)|!| |-|.|:|;|’,|?|(|)|{|}|’|‘|\n|\r|]/", $string, -1, PREG_SPLIT_NO_EMPTY);
-        $isFound = false;
+//        $array = preg_split("/[,|.|—|;|!’|?’|:|!|?|.)|!| |.|:|;|’,|?|(|)|{|}|‘|\n|\r|]/", $string, -1, PREG_SPLIT_NO_EMPTY);
+        $array = preg_split("/([^ \n\r]+[ \n\r]+)/", $string, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+
         $db = new PDO("mysql:host=localhost;dbname=wordnet;", 'root', '');
+        $array = array_map('trim', $array);
 
         if ($array) {
             for ($i = 0; $i < count($array); $i++) {
-                $array[$i] = strtolower($array[$i]);
+                $initialWord = $array[$i];              //save initial word
+                $lettersArray = str_split($array[$i]);
+                $newWord = '';
+                for ($k = 0; $k < count($lettersArray); $k++) {
+                    //remove signs
+                    if ($lettersArray[$k] == '.' || $lettersArray[$k] == ',' || $lettersArray[$k] == '—' ||
+                        $lettersArray[$k] == ';' || $lettersArray[$k] == '!' || $lettersArray[$k] == '?' ||
+                        $lettersArray[$k] == ':' || $lettersArray[$k] == '(' || $lettersArray[$k] == ')' ||
+                        $lettersArray[$k] == '{' || $lettersArray[$k] == '}' || $lettersArray[$k] == '"' ||
+                        $lettersArray[$k] == '\''
+                    ) {
+                        if ($lettersArray[$k] == '\'') {
+                            if (($k + 1 < count($lettersArray)) && ($k + 2 < count($lettersArray)) && ($lettersArray[$k + 1] == 'l' && $lettersArray[$k + 2] == 'l'
+                                    || $lettersArray[$k + 1] == 'v' && $lettersArray[$k + 2] == 'e')
+                            ) {
+                                $newWord .= $lettersArray[$k];
+                                continue;
+                            } else if (($k + 1 < count($lettersArray)) && $lettersArray[$k + 1] == 't') {
+                                $newWord .= $lettersArray[$k];
+                                continue;
+                            } else continue;
+                        } else continue;
+                    }
+                    $newWord .= $lettersArray[$k];
+                }
+//                echo 'initial: ' . $initialWord;
+//                echo '<br/>';
+//                echo 'new:' . $newWord;
+//                echo '<br/>';
+
+                $array[$i] = strtolower($newWord);
+
                 if (in_array($array[$i], self::$partsOfSpeech)) {               //search word in array, if found => it is correct
                     $array[$i] = '-' . $array[$i] . '-';
                 } else {                                                        //search word in db, if found => it is correct
-                    $stmt = $db->query("SELECT lemma FROM words WHERE lemma LIKE '" . $array[$i] .
-                        "' OR sample LIKE '% ". $array[$i] . " %' LIMIT 1");
-                    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    if($result && ($result[0]['lemma']))
-                    {
+                    if (strpos($array[$i], '\'ll') !== false || strpos($array[$i], '\'ve') !== false
+                        || strpos($array[$i], 'n\'t') !== false
+                    ) {
                         $array[$i] = '-' . $array[$i] . '-';
                     }
-                    else {
-
+                    if (self::endsWith($array[$i], 's')) {
+                        if (substr($array[$i], 0, strlen($array[$i]) - 1)) {
+                            $array[$i] = substr($array[$i], 0, strlen($array[$i]) - 1);
+//                            var_dump($array[$i]);
+                        }
                     }
+                    $stmt = $db->query("SELECT lemma FROM words WHERE lemma LIKE '" . $array[$i] .
+                        "' OR sample LIKE '% " . $array[$i] . " %' LIMIT 1");
+                    if (!$stmt)
+                        continue;
+                    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+                    if ($result && ($result[0]['lemma'])) {
+                        $array[$i] = '-' . $array[$i] . '-';
+                    } else {
+                        //find all words from array and from db, where distance = 1
+                        $similarWords = [];
+                        foreach (self::$partsOfSpeech as $word) {
+                            $distance = levenshtein($array[$i], $word, 1, 1, 1);
+                            if ($distance == 1) {
+//                                echo 'Distance array for ' . $array[$i] . ' and ' . $word . ' = ' . $distance . "<br/>";
+                                array_push($similarWords, $word);
+                            }
+                        }
 
+                        $length = strlen($array[$i]);
+                        $in = " $length, $length + 1, $length - 1 ";
+                        $partsQuery = '';
 
-//                    foreach (self::$partsOfSpeech as $partsOfSpeech) {
-//                        //find levenshtein distance among $partsOfSpeech
-//                        $distance = levenshtein($array[$i], $partsOfSpeech, 1, 1, 1);
-//                        if (strlen($array[$i]) && $distance == 1) {
-//
-//                            try {
-//                                $stmt = $db->query("SELECT lemma FROM words WHERE lemma LIKE '" . $array[$i] . "'");
-//                                $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-//                                if($result && ($result[0]['lemma']))
-//                                {
-//                                    $array[$i] = '-' . $array[$i] . '-';
-//                                    $isFound = true;
-////                                    echo $array[$i] . ' word with distance 1 in array -> found db -> replaced<br/>';
-//                                }
-//                                else {
-//                                    //get closest word from $partsOfSpeech
-////                                    echo 'Distance for ' . $array[$i] . ' and ' . $partsOfSpeech . ' = ' . $distance . "<br/>";
-//                                    $array[$i] = '/' . $partsOfSpeech . '/';
-//                                    $isFound = true;
-////                                    echo $array[$i] . ' word with distance 1 in array -> not found in db, found closest in array -> replaced<br/>';
-//                                }
-//                            } catch (PDOException $e) {
-//                                return $e;
-//                            }
-//                        }
-//                    }
-//
-//                    if(!$isFound)   // if the word was not found in $partsOfSpeech -> check other words in db
-//                    {
-//                        echo $array[$i] . ' word was not found in array -> search in db<br/>';
-//                        $similarWords = [];
-//                        $length = strlen($array[$i]);
-//                        $in = " $length, $length + 1, $length - 1 ";
-//                        $partsQuery = '';
-//                        for ($j = 0; $j < strlen($array[$i]) - 2; $j++)
-//                        {
-//                            $part = $array[$i][$j] . $array[$i][$j+1] . $array[$i][$j+2];
-//                            if($j == strlen($array[$i]) - 3 )
-//                                $partsQuery .= " lemma LIKE '%$part%' ";
-//                            else
-//                                $partsQuery .= " lemma LIKE '%$part%' OR ";
-//                        }
-////                        var_dump($array);
-//
-//
-//                        $globalStmt = $db->query("SELECT lemma FROM words WHERE wordGroup IN ($in) AND ($partsQuery) ");
-//                        if(!$globalStmt)
-//                            return false;
-//
-//                        $globalResult = $globalStmt->fetchAll(PDO::FETCH_ASSOC);
-//
-//                        foreach ($globalResult as $item)
-//                        {
-//                            if($item['lemma'] != null)
-//                            {
-//                                if($array[$i] == $item['lemma'])
-//                                {
-//                                    echo $array[$i] . ' word from lemma found in db -> correct<br/>';
-//                                    $array[$i] = '-' . $array[$i] . '-';
-//                                }
-//                                else if(self::endsWith($array[$i], 's') ) {
-//                                    if(substr($array[$i],0, strlen($array[$i]) - 1))
-//                                    {
-//                                        $array[$i] = '-' . $array[$i] . '-';
-//                                    }
-//                                }
-//                                else if(self::endsWith($array[$i], 'ed') ) {
-//                                    if(substr($array[$i],0, strlen($array[$i]) - 2))
-//                                    {
-//                                        $array[$i] = '-' . $array[$i] . '-';
-//                                    }
-//                                }
-//                                else if(self::endsWith($array[$i], 'ing') ) {
-//                                    if(substr($array[$i],0, strlen($array[$i]) - 2))
-//                                    {
-//                                        $array[$i] = '-' . $array[$i] . '-'; //TODO: add ing rules
-//                                    }
-//                                }
-//                                else
-//                                {
-//                                    $distance = levenshtein($array[$i], $item['lemma'], 1, 1, 1);
-//                                    if($distance == 1)
-//                                    {
-////                                        echo 'Distance for ' . $array[$i] . ' and ' . $item['lemma'] . ' = ' . $distance . "<br/>";
-//                                        array_push($similarWords, $item['lemma']);
-//                                    }
-//                                }
-//                            }
-//                        }
-//                        if (strpos($array[$i], '-') === false) {    //word was not found -> get closest from db
-//                            if($similarWords)
-//                                $array[$i] = '/' . $similarWords[0] . '/';
-//                        }
-////                        var_dump($similarWords);
-//                    }
-//                    $isFound = false;
+                        for ($j = 0; $j < strlen($array[$i]) - 2; $j++) {
+                            if (strlen($array[$i]) == 3) {
+                                $partsQuery = '';
+                                break;
+                            }
+                            $part = $array[$i][$j] . $array[$i][$j + 1] . $array[$i][$j + 2];
+                            if ($j == strlen($array[$i]) - 3)
+                                $partsQuery .= " lemma LIKE '%$part%' )";
+                            else
+                                $partsQuery .= " AND ( lemma LIKE '%$part%' OR ";
+                        }
+                        $sql = "SELECT lemma FROM words WHERE wordGroup IN ($in) ";
+//                        var_dump($sql);
+                        $globalStmt = $db->query($sql);
+                        if (!$globalStmt)
+                            continue;
+
+                        $dbWords = $globalStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                        foreach ($dbWords as $dbWord) {
+                            if ($dbWord['lemma'] != null) {
+                                $distance = levenshtein($array[$i], $dbWord['lemma'], 1, 1, 1);
+                                if ($distance == 1) {
+//                                    echo 'Distance db for ' . $array[$i] . ' and ' . $dbWord['lemma'] . ' = ' . $distance . "<br/>";
+                                    array_push($similarWords, $dbWord['lemma']);
+                                }
+                            }
+                        }
+                        //find which word has max frequency and suggest it
+                        //if there is no such word => suggest any
+//                        var_dump($similarWords);
+                        $maxFrequency = -1;
+                        $suggestedWord = '';
+                        foreach ($similarWords as $word) {
+                            $sql = "SELECT frequency FROM `word-frequency` WHERE lemma LIKE '$word' LIMIT 1";
+                            $globalStmt = $db->query($sql);
+                            if (!$globalStmt)
+                                continue;
+                            $dbWord = $globalStmt->fetchAll(PDO::FETCH_ASSOC);
+                            if ($dbWord) {
+                                if ($dbWord[0]['frequency'] > $maxFrequency) {
+                                    $maxFrequency = $dbWord[0]['frequency'];
+                                    $suggestedWord = $word;
+                                }
+                            }
+                        }
+//                        var_dump($suggestedWord . ' : ' . $maxFrequency);
+                        if ($suggestedWord != '') {
+                            $array[$i] = '/' . $suggestedWord . '/';
+                        } else {
+                            if (!empty($similarWords))
+                                $array[$i] = '/' . $similarWords[0] . '/';
+                        }
+                    }
                 }
-//                echo '-----------------------------<br/>';
+                if ($initialWord != $array[$i]) {
+                    $newWordReplaced = '';
+                    $r = str_replace('-', '', $array[$i]);
+                    $r = str_replace('/','',$r);
+                    var_dump($r);
+                    $t = str_split($r);
+                    for ($g = 0; $g < count($t); $g++) {
+                        if ($t[$g] == '.' || $t[$g] == ',' || $t[$g] == '—' ||
+                            $t[$g] == ';' || $t[$g] == '!' || $t[$g] == '?' ||
+                            $t[$g] == ':' || $t[$g] == '(' || $t[$g] == ')' ||
+                            $t[$g] == '{' || $t[$g] == '}' || $t[$g] == '"' ||
+                            $t[$g] == '\'' || $t[$g] == '-'
+                        ) {
+                            $newWordReplaced .= $t[$g];
+                        } else {
+                            if (ctype_upper($initialWord[$g]) && strtoupper($t[$g]) == $initialWord[$g]) {
+                                $newWordReplaced .= strtoupper($t[$g]);
+                            }
+                            else {
+                                $newWordReplaced .= $t[$g];
+                            }
+                        }
+                    }
+                    var_dump($newWordReplaced);
+                }
             }
+
         } else {
             $array = $string;
         }
+//        print_r($array);
         return $array;
     }
 
-    public static function insertMany()
+    public
+    static function insertMany()
     {
         $db = new PDO('mysql:host=localhost;dbname=wordnet;', 'root', '');
         $file = fopen('C:\Users\sam13\Desktop\ttt.txt', "r") or die("Unable to open file!");
         $words = [];
-        while(!feof($file)) {
+        while (!feof($file)) {
             $words[] = trim(fgets($file));
         }
         fclose($file);
 
         $file = fopen('C:\Users\sam13\Desktop\fff.txt', "r") or die("Unable to open file!");
         $fr = [];
-        while(!feof($file)) {
+        while (!feof($file)) {
             $fr[] = trim(fgets($file));
         }
         fclose($file);
@@ -186,6 +224,14 @@ class StringManager
             $db->exec("INSERT INTO `word-frequency` (`lemma`, `frequency`) VALUES ('$words[$index]', '$fr[$index]')");
     }
 
+    private
+    static function endsWith($haystack, $needle)
+    {
+        $length = strlen($needle);
+
+        return $length === 0 ||
+            (substr($haystack, -$length) === $needle);
+    }
 
 //$stmt = $db->query("select words.wordid, words.lemma, samples.sample from words inner join senses on
 //words.wordid = senses.wordid inner join samples on samples.synsetid = senses.synsetid ORDER BY `words`.`wordid` ASC");

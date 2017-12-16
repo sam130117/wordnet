@@ -26,6 +26,7 @@ html, body{
     font-weight: normal;
     margin: 10px 0;
     height: 250px;
+    overflow: auto;
 }
 
 .error-message {
