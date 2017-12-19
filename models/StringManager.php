@@ -33,15 +33,32 @@ class StringManager
 
         'am', 'are', 'is', 'was', 'were', 'been', 'has', 'have', 'had');
 
+    public static function addWord($lemma, $frequency, $sample)
+    {
+        $db = new PDO("mysql:host=localhost;dbname=wordnet;", 'root', '');
+        $stmt = $db->query("SELECT COUNT(lemma) FROM words WHERE lemma = $lemma");
+        if ($stmt)
+            return 'Lemma already exists!';
+        $group = strlen($lemma);
+        $stmt = $db->query("INSERT INTO `words` (`lemma`, `wordGroup`, `sample`) VALUES ($lemma, $group, $sample)");
+        if($stmt)
+        {
+            $stmt = $db->query("INSERT INTO `word-frequency` (`lemma`, `frequency`) VALUES ($lemma, $frequency)");
+            if($stmt->fetchAll()) return true;
+            return true;
+        }
+        return false;
+    }
 
     public static function process($string)
     {
 //        $array = preg_split("/[,|.|—|;|!’|?’|:|!|?|.)|!| |.|:|;|’,|?|(|)|{|}|‘|\n|\r|]/", $string, -1, PREG_SPLIT_NO_EMPTY);
+        $string = trim($string);
         $array = preg_split("/([^ \n\r]+[ \n\r]+)/", $string, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
 
         $db = new PDO("mysql:host=localhost;dbname=wordnet;", 'root', '');
         $array = array_map('trim', $array);
-
+        $similarWordsResult = [];
         if ($array) {
             for ($i = 0; $i < count($array); $i++) {
                 $initialWord = $array[$i];              //save initial word
@@ -77,17 +94,18 @@ class StringManager
                 $array[$i] = strtolower($newWord);
 
                 if (in_array($array[$i], self::$partsOfSpeech)) {               //search word in array, if found => it is correct
-                    $array[$i] = '-' . $array[$i] . '-';
+                    $array[$i] = '&' . $array[$i] . '&';
+                    $similarWordsResult[$i]['word'] = $array[$i];
                 } else {                                                        //search word in db, if found => it is correct
                     if (strpos($array[$i], '\'ll') !== false || strpos($array[$i], '\'ve') !== false
                         || strpos($array[$i], 'n\'t') !== false
                     ) {
-                        $array[$i] = '-' . $array[$i] . '-';
+                        $array[$i] = '&' . $array[$i] . '&';
+                        $similarWordsResult[$i]['word'] = $array[$i];
                     }
                     if (self::endsWith($array[$i], 's')) {
                         if (substr($array[$i], 0, strlen($array[$i]) - 1)) {
                             $array[$i] = substr($array[$i], 0, strlen($array[$i]) - 1);
-//                            var_dump($array[$i]);
                         }
                     }
                     $stmt = $db->query("SELECT lemma FROM words WHERE lemma LIKE '" . $array[$i] .
@@ -97,7 +115,8 @@ class StringManager
                     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     if ($result && ($result[0]['lemma'])) {
-                        $array[$i] = '-' . $array[$i] . '-';
+                        $array[$i] = '&' . $array[$i] . '&';
+                        $similarWordsResult[$i]['word'] = $array[$i];
                     } else {
                         //find all words from array and from db, where distance = 1
                         $similarWords = [];
@@ -111,21 +130,20 @@ class StringManager
 
                         $length = strlen($array[$i]);
                         $in = " $length, $length + 1, $length - 1 ";
-                        $partsQuery = '';
-
-                        for ($j = 0; $j < strlen($array[$i]) - 2; $j++) {
-                            if (strlen($array[$i]) == 3) {
-                                $partsQuery = '';
-                                break;
-                            }
-                            $part = $array[$i][$j] . $array[$i][$j + 1] . $array[$i][$j + 2];
-                            if ($j == strlen($array[$i]) - 3)
-                                $partsQuery .= " lemma LIKE '%$part%' )";
-                            else
-                                $partsQuery .= " AND ( lemma LIKE '%$part%' OR ";
-                        }
+//                        $partsQuery = '';
+//
+//                        for ($j = 0; $j < strlen($array[$i]) - 2; $j++) {
+//                            if (strlen($array[$i]) == 3) {
+//                                $partsQuery = '';
+//                                break;
+//                            }
+//                            $part = $array[$i][$j] . $array[$i][$j + 1] . $array[$i][$j + 2];
+//                            if ($j == strlen($array[$i]) - 3)
+//                                $partsQuery .= " lemma LIKE '%$part%' )";
+//                            else
+//                                $partsQuery .= " AND ( lemma LIKE '%$part%' OR ";
+//                        }
                         $sql = "SELECT lemma FROM words WHERE wordGroup IN ($in) ";
-//                        var_dump($sql);
                         $globalStmt = $db->query($sql);
                         if (!$globalStmt)
                             continue;
@@ -143,7 +161,7 @@ class StringManager
                         }
                         //find which word has max frequency and suggest it
                         //if there is no such word => suggest any
-//                        var_dump($similarWords);
+
                         $maxFrequency = -1;
                         $suggestedWord = '';
                         foreach ($similarWords as $word) {
@@ -165,33 +183,80 @@ class StringManager
                         } else {
                             if (!empty($similarWords))
                                 $array[$i] = '/' . $similarWords[0] . '/';
+                            else
+                                $array[$i] = '#' . $array[$i] . '#';
+                        }
+
+
+                        if (count($similarWords) > 1) {
+                            $j = 0;
+                            $a = [];
+//                            var_dump($similarWords);
+                            foreach ($similarWords as $similarWord) {
+                                if ($j == 2) break;
+                                if ($similarWord == $suggestedWord) continue;
+
+                                $a[] = $similarWord;
+                                $j++;
+                            }
+                            $similarWordsResult[$i]['similar-words'] = $a;
                         }
                     }
                 }
-                if ($initialWord != $array[$i]) {
+
+
+                if ($initialWord != $array[$i]) { //always true
                     $newWordReplaced = '';
-                    $r = str_replace('-', '', $array[$i]);
-                    $r = str_replace('/','',$r);
-                    var_dump($r);
-                    $t = str_split($r);
-                    for ($g = 0; $g < count($t); $g++) {
-                        if ($t[$g] == '.' || $t[$g] == ',' || $t[$g] == '—' ||
-                            $t[$g] == ';' || $t[$g] == '!' || $t[$g] == '?' ||
-                            $t[$g] == ':' || $t[$g] == '(' || $t[$g] == ')' ||
-                            $t[$g] == '{' || $t[$g] == '}' || $t[$g] == '"' ||
-                            $t[$g] == '\'' || $t[$g] == '-'
+                    $wordStatus = '';
+
+                    if ($array[$i][0] == '&' && $array[$i][strlen($array[$i]) - 1] == '&') {
+                        $wordStatus = 'correct';
+                        $resultString = trim($array[$i], "&");
+                    } else if ($array[$i][0] == '/' && $array[$i][strlen($array[$i]) - 1] == '/') {
+                        $wordStatus = 'error';
+                        $resultString = trim($array[$i], "/");
+                    } else if ($array[$i][0] == '#' && $array[$i][strlen($array[$i]) - 1] == '#') {
+                        $wordStatus = 'unknown';
+                        $resultString = trim($array[$i], "#");
+                    }
+
+//                    var_dump('Initial: ' . $initialWord);
+//                    var_dump('Found replaced: ' . $resultString);
+                    $foundWordArray = str_split($resultString);
+                    $initialWordArray = str_split($initialWord);
+                    $index = 0;
+                    for ($g = 0; $g < count($initialWordArray); $g++) {
+                        if ($initialWordArray[$g] == '.' || $initialWordArray[$g] == ',' || $initialWordArray[$g] == '—' ||
+                            $initialWordArray[$g] == ';' || $initialWordArray[$g] == '!' || $initialWordArray[$g] == '?' ||
+                            $initialWordArray[$g] == ':' || $initialWordArray[$g] == '(' || $initialWordArray[$g] == ')' ||
+                            $initialWordArray[$g] == '{' || $initialWordArray[$g] == '}' || $initialWordArray[$g] == '"' ||
+                            $initialWordArray[$g] == '\''
                         ) {
-                            $newWordReplaced .= $t[$g];
+                            $newWordReplaced .= $initialWordArray[$g];
                         } else {
-                            if (ctype_upper($initialWord[$g]) && strtoupper($t[$g]) == $initialWord[$g]) {
-                                $newWordReplaced .= strtoupper($t[$g]);
-                            }
-                            else {
-                                $newWordReplaced .= $t[$g];
+                            if ($index < count($foundWordArray)) {
+                                if (ctype_upper($initialWord[$g]) && strtoupper($foundWordArray[$index]) == $initialWord[$g]) {
+                                    $newWordReplaced .= strtoupper($foundWordArray[$index]);
+                                    $index++;
+                                } else {
+                                    $newWordReplaced .= $foundWordArray[$index];
+                                    $index++;
+                                }
+                            } else {
+                                $newWordReplaced .= $initialWord[$g];
                             }
                         }
                     }
-                    var_dump($newWordReplaced);
+//                    var_dump('New word: ' . $newWordReplaced);
+                    if ($wordStatus == 'correct') {
+                        $array[$i] = '&' . $newWordReplaced . '&';
+                    } else if ($wordStatus == 'error') {
+                        $array[$i] = '/' . $newWordReplaced . '/';
+                    } else if ($wordStatus == 'unknown') {
+                        $array[$i] = '#' . $newWordReplaced . '#';
+                    }
+
+                    $similarWordsResult[$i]['word'] = $array[$i];
                 }
             }
 
@@ -199,7 +264,8 @@ class StringManager
             $array = $string;
         }
 //        print_r($array);
-        return $array;
+//        print_r($similarWordsResult);
+        return $similarWordsResult;
     }
 
     public

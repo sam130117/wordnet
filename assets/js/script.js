@@ -5,27 +5,60 @@ $(document).ready(function () {
         ajaxStop: function() { $body.removeClass("loading"); }
     });
 
+    $(document).on('click','.tooltip-text span',function(){
+        var oldText = $(this).parent().siblings(".error-message");
+        var newText = $(this).text();
+
+        $(this).text(oldText.text());
+        oldText.text(newText);
+    });
+    //
+    // $('#original-text').keydown(function (e) {
+    //
+    //     if (e.ctrlKey && e.keyCode == 13) {
+    //         document.getElementById('id01').style.display='block';
+    //     }
+    // });
+
     $('#main-form').submit(function () {
         event.preventDefault();
         var form = $(this);
         var t0 = performance.now();
         $.post( "algorithms/levenstain.php", form.serialize(), function(data) {
-            console.log(data);
+
             data = JSON.parse(data);
             var list = "";
             var result = data.result;
-            for (var property in result){
-                if(result[property].indexOf('/') !== -1)
+            for (var i = 0; i < Object.keys(result).length; i++){
+
+                if(!result[i]) continue;
+                if(result[i]['word'].indexOf('/') !== -1)
                 {
-                    var word = result[property].replace(/\//g, '');
-                    list = list + '<span class="error-message">' + word + '</span>' + ' ';
+                    var word = result[i]['word'].replace(/\//g, '');
+                    if(result[i]['similar-words'])
+                    {
+                        list = list + '<div class="tooltip-container"><span class="error-message">' + word + '</span>' +
+                            '<span class="tooltip-text">';
+                        for(var j = 0; j < result[i]['similar-words'].length; j++)
+                        {
+                            list = list + '<span>' + result[i]['similar-words'][j] + '</span>';
+                        }
+                        list = list + '</span></div> ';
+                    }
+                    else {
+                        list = list + '<span class="error-message">' + word + '</span>' + ' ';
+                    }
+
                 }
-                else if(result[property].indexOf('-') !== -1){
-                    var word = result[property].replace(/-/g, '');
-                    list = list + '<span class="success-message">' + word + '</span>' + ' ';
+                else if(result[i]['word'].indexOf('&') !== -1){
+                    word = result[i]['word'].replace(/&/g, '');
+                    // list = list + '<span class="success-message">' + word + '</span>' + ' ';
+                    list = list + '<span>' + word + '</span>' + ' ';
                 }
                 else {
-                    list = list + result[property] + ' ';
+                    word = result[i]['word'].replace(/#/g, '');
+                    list = list + '<span class="unknown-message">' + word + '</span>' + ' ';
+                    // list = list + result[property] + ' ';
                 }
             }
             form.find('#processed-text').html(list);
@@ -35,6 +68,20 @@ $(document).ready(function () {
 
 
     });
+    // $('#add-word-form').submit(function () {
+    //     event.preventDefault();
+    //     var form = $(this);
+    //     console.log(123);
+    //     $.post( "algorithms/add-word.php", form.serialize(), function(data) {
+    //         console.log(data);
+    //         data = JSON.parse(data);
+    //
+    //         var result = data.result;
+    //         form.find('#processed-text').html(list);
+    //     });
+    //
+    //
+    // });
 });
 
 /*

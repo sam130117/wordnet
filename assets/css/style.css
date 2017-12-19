@@ -19,20 +19,21 @@ html, body{
 }
 
 .text-output {
-    min-height: 200px;
+    min-height: 60px;
     background-color: #f1f1f1;
-    color: #737373;
+    color: #3e3e3e;
     border: 1px solid rgb(169, 169, 169);
     font-weight: normal;
     margin: 10px 0;
-    height: 250px;
-    overflow: auto;
+    height: auto;
 }
 
 .error-message {
     color: red;
     font-weight: bold;
-    text-decoration: underline;
+    font-style: italic;
+    /*text-decoration: underline;*/
+    border-bottom: 1px dotted red;
 }
 
 .success-message {
@@ -40,10 +41,47 @@ html, body{
     font-weight: bold;
 }
 
+.unknown-message {
+    color: #a7a7a7;
+    font-style: italic;
+}
+
 textarea.text-input{
     margin: 10px 0;
     resize: vertical;
-    height: 250px;
+    height: 350px;
+}
+
+.tooltip-container {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.tooltip-container .tooltip-text {
+    visibility: hidden;
+    width: auto;
+    background-color: red;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 4px 20px;
+    position: absolute;
+    z-index: 1;
+    top: 110%;
+    left: 0;
+}
+
+.tooltip-container .tooltip-text span{
+    display: block;
+}
+
+.tooltip-container .tooltip-text span:hover{
+    color: black;
+}
+
+.tooltip-container:hover .tooltip-text {
+    visibility: visible;
 }
 
 ::-webkit-input-placeholder{ font: 14px/16px "Arial ", sans-serif;}
@@ -61,11 +99,11 @@ form input[type=text]{
     border: 1px solid #eeeeee;
 }
 
-form input[type=text]:focus, form input[type=submit]:focus, form button:focus{
+input[type=text]:focus, input[type=submit]:focus, button:focus{
     outline: none;
 }
 
-form input[type=submit], form button{
+input[type=submit], button{
     width: 100%;
     max-width: 200px;
     margin: 10px 0;
@@ -104,4 +142,65 @@ body.loading {
    modal element will be visible */
 body.loading .modal {
     display: block;
+}
+
+.w3-modal {
+    z-index: 3;
+    display: none;
+    padding-top: 100px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
+}
+
+/*@media (min-width: 993px){*/
+    .w3-modal-content {
+        width: 900px;
+    }
+
+    .w3-modal-content {
+        margin: auto;
+        background-color: #fff;
+        position: relative;
+        padding: 0;
+        outline: 0;
+        width: 600px;
+    }
+/*}*/
+
+.w3-teal, .w3-hover-teal:hover {
+    color: #fff!important;
+    background-color: #00006b!important;
+}
+.w3-teal h2,  .w3-modal-content form{
+    padding: 10px 30px;
+}
+
+.w3-button {
+    border: none;
+    display: inline-block;
+    outline: 0;
+    padding: 8px 16px;
+    vertical-align: middle;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    background-color: inherit;
+    text-align: center;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.w3-button:hover {
+    background-color: darkblue;
+}
+
+.w3-display-topright {
+    position: absolute;
+    right: 0;
+    top: 0;
 }
