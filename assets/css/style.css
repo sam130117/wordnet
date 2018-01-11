@@ -32,8 +32,11 @@ html, body{
     color: red;
     font-weight: bold;
     font-style: italic;
-    /*text-decoration: underline;*/
     border-bottom: 1px dotted red;
+}
+
+.error-message-color {
+    color: red;
 }
 
 .success-message {
@@ -161,6 +164,7 @@ body.loading .modal {
 /*@media (min-width: 993px){*/
     .w3-modal-content {
         width: 900px;
+        padding-bottom: 10px!important;
     }
 
     .w3-modal-content {
@@ -203,4 +207,26 @@ body.loading .modal {
     position: absolute;
     right: 0;
     top: 0;
+}
+
+.glyphicon {
+    font-size: 0.8em;
+    margin-left: 4px;
+}
+
+.panel-heading a {
+    display: inline-block;
+    width: 100%;
+    text-decoration: none;
+}
+.statistics {
+    display: none;
+}
+#id02 {
+    display: none;
+    margin: 30px 20px 0 20px;
+}
+
+#id03 {
+    display: none;
 }

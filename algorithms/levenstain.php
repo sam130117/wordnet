@@ -1,7 +1,7 @@
 <?php
 use models\StringManager;
 
-require_once('../models/Wordnet.php');
+require_once('../models/WordnetManager.php');
 require_once('../models/StringManager.php');
 
 
